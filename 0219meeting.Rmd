@@ -1,5 +1,5 @@
 ---
-title: "0219meeting"
+title: "0219_meeting0_summary"
 author: "Xinyao Wu"
 date: "2/19/2020"
 output: 
@@ -28,6 +28,7 @@ It means the average of A under the condition of C. It also means for this proje
 ###4.	How to generate E[A|C]?
 
 
+
 $$
 E[A|C]=\left\{
 \begin{aligned}
@@ -41,7 +42,7 @@ E[A|C]=\left\{
 $$
 
 
-*Notify that there is a corr matrix in the paper need to be applied*
+*Notify that there is a correlation matrix in the paper need to be applied*
 
 
 ###5.	What is the DAG of this study after simplifying?
@@ -54,17 +55,26 @@ $$
 Bootstrap is a nun-parametric way for simulating from an unknown distribution. 
 The reason why this project needs both bootstrap and simulation is that we use simulation to generate data, then use bootstrap to sample from 'observed data' to do the checking things(like accuracy, misclassification rate or ect.)
 
-
-
 ###7.	What does it means to utilize linear regression to fit E[Y|A,C]?
 
+$$E[Y|A,C] = \beta_0 +\beta_1A+\beta_2C$$
+only when Assuming A and C are independent, the formula above can hold.
+If we pretend not knowing the generation process and assume A and C are independent, this process would be the first step for a normal analysis pipeline. So we do this step to get a general idea of the effect from falsl modeling.
 
-###8.	What is MSM? 
+###8.	What is Marginal Structure Model? 
 
+$$E[Y_a]=\beta_0+\beta_1A$$
+Above is MSM
 
-###9.	What will be solved after fitting MSM? How to fit MSM
+To let this formula make sense, each observed point needs to be weighted according to the joint distribution of A and C.
 
+###9.	How to fit MSM? What will be solved after fitting MSM?
+ 
+(1) Calculate IPTW
 
+(2) Weight each data point
+
+(3) Build marginal model
 
 
 #Coding & Tasks
