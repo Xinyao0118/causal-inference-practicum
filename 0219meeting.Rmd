@@ -70,12 +70,13 @@ To let this formula make sense, each observed point needs to be weighted accordi
 
 ###9.	How to fit MSM? What will be solved after fitting MSM?
  
-(1) Calculate IPTW
+(1) Calculate IPTW(inverse probability of treatment weights)
 
 (2) Weight each data point
 
 (3) Build marginal model
 
+After fitting MSM, we will get another estimated causal effect. This one should be more closed to the truth because it does not depend on the assumption of independence between A and C. If it is not, we need to check the reason.
 
 #Coding & Tasks
 
@@ -84,13 +85,39 @@ To let this formula make sense, each observed point needs to be weighted accordi
 ###(1)specify a case for showing $E[Y_{g(A)}-Y_{g(A)^*}]$
 
 referring 2 in the review:
+```{r}
 
+```
 
 ###(2)Simulation
 
+```{r}
+
+```
+
+###(3)Plot the relationship between Y and the deviation of exposure
+
+
+
 
 ##2.Explanation
+__A__: exposure, denoted by __As,Pb,Mn__ \
+__C__: observed confoundings, denoted by __age,iq,edu,smoke__ \
+__Y__: outcome, denoted by __cs__ \
+sample size = 825 \
+n_simulation =100 \
+n_bootstrap = 100 \
 
+*The distributions of A and C are designed based on paper* \
+$$[As,Mn,Pb] \sim MVN(u,\sum)$$
+$$\mu = [1,9.7,1.8]$$
+$$\sum = ([1,0.59,0.29],[0.59,1,0.53],[0.29,0.53,1])$$
+
+$$IQ \sim N(825,26,5)$$
+$$Age \sim N(825,22.9,4.2)$$
+$$Education \sim Bin(825,1,0.24)$$
+
+$$Smoke\ Statue \sim Bin(825,1,0.24)$$
 
 
 

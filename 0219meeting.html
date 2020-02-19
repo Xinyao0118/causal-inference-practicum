@@ -319,10 +319,11 @@ $$ E[A|C]={
 <div id="how-to-fit-msm-what-will-be-solved-after-fitting-msm" class="section level3">
 <h3>9. How to fit MSM? What will be solved after fitting MSM?</h3>
 <ol style="list-style-type: decimal">
-<li><p>Calculate IPTW</p></li>
+<li><p>Calculate IPTW(inverse probability of treatment weights)</p></li>
 <li><p>Weight each data point</p></li>
 <li><p>Build marginal model</p></li>
 </ol>
+<p>After fitting MSM, we will get another estimated causal effect. This one should be more closed to the truth because it does not depend on the assumption of independence between A and C. If it is not, we need to check the reason.</p>
 </div>
 </div>
 <div id="coding-tasks" class="section level1">
@@ -336,9 +337,22 @@ $$ E[A|C]={
 <div id="simulation" class="section level3">
 <h3>(2)Simulation</h3>
 </div>
+<div id="plot-the-relationship-between-y-and-the-deviation-of-exposure" class="section level3">
+<h3>(3)Plot the relationship between Y and the deviation of exposure</h3>
+</div>
 </div>
 <div id="explanation" class="section level2">
 <h2>2.Explanation</h2>
+<p><strong>A</strong>: exposure, denoted by <strong>As,Pb,Mn</strong><br />
+<strong>C</strong>: observed confoundings, denoted by <strong>age,iq,edu,smoke</strong><br />
+<strong>Y</strong>: outcome, denoted by <strong>cs</strong><br />
+sample size = 825<br />
+n_simulation =100<br />
+n_bootstrap = 100<br />
+<em>The distributions of A and C are designed based on paper</em><br />
+<span class="math display">\[[As,Mn,Pb] \sim MVN(u,\sum)\]</span> <span class="math display">\[\mu = [1,9.7,1.8]\]</span> <span class="math display">\[\sum = ([1,0.59,0.29],[0.59,1,0.53],[0.29,0.53,1])\]</span></p>
+<p><span class="math display">\[IQ \sim N(825,26,5)\]</span> <span class="math display">\[Age \sim N(825,22.9,4.2)\]</span> <span class="math display">\[Education \sim Bin(825,1,0.24)\]</span></p>
+<p><span class="math display">\[Smoke\ Statue \sim Bin(825,1,0.24)\]</span></p>
 </div>
 </div>
 <div id="prospective" class="section level1">
