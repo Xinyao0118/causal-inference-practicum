@@ -282,20 +282,33 @@ div.tocify {
 <h3>2. What is the difference between <span class="math inline">\(E[Y_{e_(75th)} - Y_{e^*_25th}]\)</span> and <span class="math inline">\(E[Y_{g(A)}-Y_{g(A)^*}]\)</span></h3>
 <p>Since it is a multi-exporsure analysis, we specify it as one metal first. <span class="math inline">\(E[Y_{e_(75th)} - Y_{e^*_25th}]\)</span> means using descriptive characteristics (eg.75 percentile,25 percentile) to estimate the causal effect. <span class="math inline">\(E[Y_{g(A)}-Y_{g(A)^*}]\)</span> means using different distributions when estimating the causal effect.</p>
 </div>
-<div id="what-does-eac-mean" class="section level3">
-<h3>3. What does E[A|C] mean?</h3>
+<div id="what-does-eac-mean-why" class="section level3">
+<h3>3. What does E[A|C] mean? Why</h3>
+<p>It means the average of A under the condition of C. It also means for this project we generate C first, specify it as a known factor. For generating A, the random effect would not come until the average has been generated.</p>
 </div>
 <div id="how-to-generate-eac" class="section level3">
 <h3>4. How to generate E[A|C]?</h3>
+$$ E[A|C]={
+<span class="math display">\[\begin{aligned}
+
+ \beta_0^{A_1}+\beta_2^{A_1}*C \\
+ \beta_0^{A_2}+\beta_2^{A_2}*C \\
+ \beta_0^{A_3}+\beta_2^{A_3}*C 
+
+\end{aligned}\]</span>
+<p>. $$</p>
+<p><em>Notify that there is a corr matrix in the paper need to be applied</em></p>
 </div>
 <div id="what-is-the-dag-of-this-study-after-simplifying" class="section level3">
 <h3>5. What is the DAG of this study after simplifying?</h3>
 </div>
 <div id="whats-the-structure-relationship-between-sample-size-simulation-size-and-bootstrap-size" class="section level3">
 <h3>6. What’s the structure relationship between sample size, simulation size and bootstrap size ?</h3>
+<p><em>The difference between bootstrap and simulation</em></p>
+<p>Bootstrap is a nun-parametric way for simulating from an unknown distribution. The reason why this project needs both bootstrap and simulation is that we use simulation to generate data, then use bootstrap to sample from ‘observed data’ to do the checking things(like accuracy, misclassification rate or ect.)</p>
 </div>
-<div id="how-to-utilize-linear-regression-to-fit-eyac" class="section level3">
-<h3>7. How to utilize linear regression to fit E[Y|A,C]?</h3>
+<div id="what-does-it-means-to-utilize-linear-regression-to-fit-eyac" class="section level3">
+<h3>7. What does it means to utilize linear regression to fit E[Y|A,C]?</h3>
 </div>
 <div id="what-is-msm" class="section level3">
 <h3>8. What is MSM?</h3>
@@ -303,16 +316,14 @@ div.tocify {
 <div id="what-will-be-solved-after-fitting-msm-how-to-fit-msm" class="section level3">
 <h3>9. What will be solved after fitting MSM? How to fit MSM</h3>
 </div>
-<div id="what-does-the-following-mean-where-do-they-come-from" class="section level3">
-<h3>10. What does the following mean, where do they come from?</h3>
 </div>
-</div>
-<div id="coding" class="section level1">
-<h1>Coding</h1>
+<div id="coding-tasks" class="section level1">
+<h1>Coding &amp; Tasks</h1>
 <div id="objective" class="section level2">
 <h2>1.Objective</h2>
 <div id="specify-a-case-for-showing-ey_ga-y_ga" class="section level3">
 <h3>(1)specify a case for showing <span class="math inline">\(E[Y_{g(A)}-Y_{g(A)^*}]\)</span></h3>
+<p>referring 2 in the review:</p>
 </div>
 <div id="simulation" class="section level3">
 <h3>(2)Simulation</h3>

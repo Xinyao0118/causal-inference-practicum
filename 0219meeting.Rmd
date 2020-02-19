@@ -21,14 +21,50 @@ Since it is a multi-exporsure analysis, we specify it as one metal first.
 $E[Y_{e_(75th)} - Y_{e^*_25th}]$ means using descriptive characteristics (eg.75 percentile,25 percentile) to estimate the causal effect.
 $E[Y_{g(A)}-Y_{g(A)^*}]$ means using different distributions when estimating the causal effect.
 
-###3.	What does E[A|C] mean? 
+###3.	What does E[A|C] mean? Why 
+
+It means the average of A under the condition of C. It also means for this project we generate C first, specify it as a known factor. For generating A, the random effect would not come until the average has been generated. 
+
 ###4.	How to generate E[A|C]?
+
+
+$$
+E[A|C]=\left\{
+\begin{aligned}
+
+ \beta_0^{A_1}+\beta_2^{A_1}*C \\
+ \beta_0^{A_2}+\beta_2^{A_2}*C \\
+ \beta_0^{A_3}+\beta_2^{A_3}*C 
+
+\end{aligned}
+\right.
+$$
+
+
+*Notify that there is a corr matrix in the paper need to be applied*
+
+
 ###5.	What is the DAG of this study after simplifying?
+
+
 ###6.	What’s the structure relationship between sample size, simulation size and bootstrap size ?
-###7.	How to utilize linear regression to fit E[Y|A,C]?
+
+*The difference between bootstrap and simulation*
+
+Bootstrap is a nun-parametric way for simulating from an unknown distribution. 
+The reason why this project needs both bootstrap and simulation is that we use simulation to generate data, then use bootstrap to sample from 'observed data' to do the checking things(like accuracy, misclassification rate or ect.)
+
+
+
+###7.	What does it means to utilize linear regression to fit E[Y|A,C]?
+
+
 ###8.	What is MSM? 
+
+
 ###9.	What will be solved after fitting MSM? How to fit MSM
-###10.	What does the following mean, where do they come from?
+
+
 
 
 #Coding & Tasks
@@ -36,6 +72,9 @@ $E[Y_{g(A)}-Y_{g(A)^*}]$ means using different distributions when estimating the
 ##1.Objective
 
 ###(1)specify a case for showing $E[Y_{g(A)}-Y_{g(A)^*}]$
+
+referring 2 in the review:
+
 
 ###(2)Simulation
 
