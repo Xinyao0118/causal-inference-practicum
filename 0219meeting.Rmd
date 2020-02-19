@@ -1,0 +1,57 @@
+---
+title: "0219meeting"
+author: "Xinyao Wu"
+date: "2/19/2020"
+output: 
+  html_document: 
+    number_sections: false
+    code_folding: hide
+    toc: true
+    toc_float: true
+---
+
+#Review & Summarize
+###1.	What is positivity violation?
+
+To identify the Actual causal Effect(ACE), 4 assumptions need to be satisfied, and positivity is one of them. It means if __P(A=a|C=c)is positive for all C such that P(C=c) is nonzero__ does not hold, ACE cannot be identified so it is meaningless to calculate the "formula" ACE.
+
+###2.	What is the difference between $E[Y_{e_(75th)} - Y_{e^*_25th}]$ and $E[Y_{g(A)}-Y_{g(A)^*}]$
+
+Since it is a multi-exporsure analysis, we specify it as one metal first.
+$E[Y_{e_(75th)} - Y_{e^*_25th}]$ means using descriptive characteristics (eg.75 percentile,25 percentile) to estimate the causal effect.
+$E[Y_{g(A)}-Y_{g(A)^*}]$ means using different distributions when estimating the causal effect.
+
+###3.	What does E[A|C] mean? 
+###4.	How to generate E[A|C]?
+###5.	What is the DAG of this study after simplifying?
+###6.	What’s the structure relationship between sample size, simulation size and bootstrap size ?
+###7.	How to utilize linear regression to fit E[Y|A,C]?
+###8.	What is MSM? 
+###9.	What will be solved after fitting MSM? How to fit MSM
+###10.	What does the following mean, where do they come from?
+
+
+#Coding & Tasks
+
+##1.Objective
+
+###(1)specify a case for showing $E[Y_{g(A)}-Y_{g(A)^*}]$
+
+###(2)Simulation
+
+
+##2.Explanation
+
+
+
+
+#Prospective 
+
+
+
+
+
+
+
+
+
