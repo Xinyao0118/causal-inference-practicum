@@ -10,6 +10,16 @@ output:
     toc_float: true
 ---
 
+```{r include=FALSE}
+library(tidyverse)
+library(MASS)
+#sample size
+size = 825
+nsim = 100
+nboost = 100
+set.seed(1234)
+```
+
 #Review & Summarize
 ###1.	What is positivity violation?
 
@@ -91,7 +101,49 @@ referring 2 in the review:
 
 ###(2)Simulation
 
-```{r}
+```{r simulation}
+#confoundings
+age = rnorm(825,22.9,4.2)
+iq = rnorm(825,26,5)
+edu = rbinom(825,1,0.24)
+smoke = rbinom(825,1,0.24)
+
+#exposure
+#coefficients for three mental
+as.beta = c(1,0.3,2,5,8)/50
+mn.beta = c(8,9,0.2,3,4)/25
+pb.beta = c(0.5,7,2,4,9)/100
+beta = data.frame(as.beta,mn.beta,pb.beta) %>% t()
+colnames(beta) = c('beta0','beta_age','beta_iq','beta_edu','beta_smoke')
+beta 
+
+#calculate the average of confounding 
+avg.c = c(1,mean(age),mean(iq),mean(edu),mean(smoke)) 
+#calculate the mean exposure
+mu = c(sum(avg.c*as.beta),sum(avg.c*mn.beta),sum(avg.c*pb.beta)) %>% as.vector()
+names(mu) = c('as','mn','pb')
+mu
+#variance
+corr = matrix(data = c(1,0.59,0.29,0.59,1,0.53,0.29,0.53,1),ncol =3,nrow = 3)
+#var of As,Mn,Pb is 2.2,2.6,1.9
+var = corr*2.2*2.6*1.9
+z = mvrnorm(size,mu,Sigma = var)
+as = z[,1]
+mn = z[,2]
+pb = z[,3]
+
+#package all into a df
+data = data.frame(as,mn,pb,age,iq,edu,smoke)
+##write.csv(data,file = 'simulation.csv',row.names = FALSE)
+
+#plot distribuctions of Confoundings
+
+
+```
+
+```{r outcome}
+
+
 
 ```
 
@@ -110,8 +162,6 @@ n_bootstrap = 100 \
 
 *The distributions of A and C are designed based on paper* \
 $$[As,Mn,Pb] \sim MVN(u,\sum)$$
-$$\mu = [1,9.7,1.8]$$
-$$\sum = ([1,0.59,0.29],[0.59,1,0.53],[0.29,0.53,1])$$
 
 $$IQ \sim N(825,26,5)$$
 $$Age \sim N(825,22.9,4.2)$$
