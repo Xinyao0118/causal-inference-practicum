@@ -188,8 +188,9 @@ $$Smoke\ Statue \sim Bin(825,1,0.24)$$
 
 $$ CS \sim N(avg.cs,35)$$
 
-#Prospective 
+#Problems:
 
+1.I am not quite sure the simulation is used on the right way. I have no idea which part needs to be simulated since when you generate the data, you use the distribution function, which can be seemed simulation. Isnt it??
 
 
 
