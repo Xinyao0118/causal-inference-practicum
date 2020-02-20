@@ -170,6 +170,27 @@ plot(density(cs),main = 'cs')
 
 
 
+
+###(4)Linear Regression
+```{r}
+fit1 = lm(cs~as+mn+pb+age+iq+as.factor(smoke)+as.factor(edu),data = data)
+summary(fit1)
+```
+
+The causal effect would be discribed as :\
+
+(1)with one unit increasing in As, the cs will increase by 0.486 adjusting for other covariants.\
+(2)with one unit increasing in Mn, the cs will decrease by 0.6104 adjusting for other covariants.\
+(3)with one unit increasing in Pb, the cs will increase by 0.1963 adjusting for other covariants.\
+
+The pre-setting coef for As, Mn, Pb is 0.1333333, 0.3333333, 0.8333333\
+Linear regression has a hugh bias when estimating the causal effect.
+
+
+###(5)MSM
+
+
+
 ##2.Explanation
 __A__: exposure, denoted by __As,Pb,Mn__ \
 __C__: observed confoundings, denoted by __age,iq,edu,smoke__ \
@@ -190,7 +211,7 @@ $$ CS \sim N(avg.cs,35)$$
 
 #Problems:
 
-1.I am not quite sure the simulation is used on the right way. I have no idea which part needs to be simulated since when you generate the data, you use the distribution function, which can be seemed simulation. Isnt it??
+1.I am not quite sure the simulation is used on the right way. I have no idea which part needs to be simulated since when you generate the data, you use the distribution function, which can be seemed simulation. 
 
 
 

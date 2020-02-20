@@ -407,6 +407,43 @@ plot(density(cs),main = 'cs')</code></pre>
 <div id="plot-the-relationship-between-y-and-the-deviation-of-exposure" class="section level3">
 <h3>(3)Plot the relationship between Y and the deviation of exposure</h3>
 </div>
+<div id="linear-regression" class="section level3">
+<h3>(4)Linear Regression</h3>
+<pre class="r"><code>fit1 = lm(cs~as+mn+pb+age+iq+as.factor(smoke)+as.factor(edu),data = data)
+summary(fit1)</code></pre>
+<pre><code>## 
+## Call:
+## lm(formula = cs ~ as + mn + pb + age + iq + as.factor(smoke) + 
+##     as.factor(edu), data = data)
+## 
+## Residuals:
+##      Min       1Q   Median       3Q      Max 
+## -106.993  -25.256   -1.315   23.974  121.676 
+## 
+## Coefficients:
+##                   Estimate Std. Error t value Pr(&gt;|t|)
+## (Intercept)         0.9700    10.5585   0.092    0.927
+## as                 -0.2530     0.4717  -0.536    0.592
+## mn                 -0.1173     0.5523  -0.212    0.832
+## pb                  0.5952     0.4577   1.300    0.194
+## age                 0.1591     0.2978   0.534    0.593
+## iq                  0.1707     0.2599   0.657    0.512
+## as.factor(smoke)1   2.8344     2.8934   0.980    0.328
+## as.factor(edu)1    -2.5791     2.9220  -0.883    0.378
+## 
+## Residual standard error: 35.81 on 817 degrees of freedom
+## Multiple R-squared:  0.005721,   Adjusted R-squared:  -0.002798 
+## F-statistic: 0.6716 on 7 and 817 DF,  p-value: 0.6963</code></pre>
+<p>The causal effect would be discribed as :<br />
+(1)with one unit increasing in As, the cs will increase by 0.486 adjusting for other covariants.<br />
+(2)with one unit increasing in Mn, the cs will decrease by 0.6104 adjusting for other covariants.<br />
+(3)with one unit increasing in Pb, the cs will increase by 0.1963 adjusting for other covariants.<br />
+The pre-setting coef for As, Mn, Pb is 0.1333333, 0.3333333, 0.8333333<br />
+Linear regression has a hugh bias when estimating the causal effect.</p>
+</div>
+<div id="msm" class="section level3">
+<h3>(5)MSM</h3>
+</div>
 </div>
 <div id="explanation" class="section level2">
 <h2>2.Explanation</h2>
@@ -424,7 +461,7 @@ n_bootstrap = 100<br />
 </div>
 <div id="problems" class="section level1">
 <h1>Problems:</h1>
-<p>1.I am not quite sure the simulation is used on the right way. I have no idea which part needs to be simulated since when you generate the data, you use the distribution function, which can be seemed simulation. Isnt it??</p>
+<p>1.I am not quite sure the simulation is used on the right way. I have no idea which part needs to be simulated since when you generate the data, you use the distribution function, which can be seemed simulation.</p>
 </div>
 
 
