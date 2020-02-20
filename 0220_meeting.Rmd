@@ -1,0 +1,57 @@
+---
+title: "0220_meeting"
+author: "Xinyao Wu"
+date: "2/20/2020"
+output: 
+  html_document:
+    number_sections: false
+    code_folding: hide
+    toc: True
+    toc_float: True
+---
+
+#Tasks
+
+1. Multi-variable propensity score paper\
+2. Fill in the blank of last meeting codes\
+3. Sim = 10, plot the bias\
+4. Think carefully the difference of simulation and bootstrap
+
+#Instructions
+1. population = 10,000,000, sample(n=825) from pop.\
+2. Use population to measure true ATE
+3. RE-calculate the ATE.(Formula is wrong last week). Use 75th and 25th percentile for each mental.
+4. To calculate the estimated ATE in each simulation:\
+   *(1) generate data*\
+   *(2) linear regression*\
+   *(3) apply coef to generated obs, then calculate the 75th and 25th for each point*\
+   *(4) estimate Y*\
+   *(5) take average*\
+
+#Code
+
+
+#review
+
+1. What is the difference of the use of simulation and bootstrap? \
+simulation--point esitimate\
+bootstrap-- sd 
+
+2.What is the difference of correlated and interacted? \
+
+Y = A+B+B*C \
+A = 3B+2 \
+
+A and B are correlated. B and C are interacted.
+
+
+
+
+
+
+
+
+
+
+
+
