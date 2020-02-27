@@ -67,7 +67,8 @@ quantile(pb,probs = c(0.25,0.75))
 
 ##assume coef
 par(mfrow=c(2,2))
-cs = rnorm(825,(as*mn+as^2+pb+pb*3+mn)/10000,35)
+cs = 5*as+7*mn-3*pb+age*iq+edu*iq+smoke^2 +rnorm(825,sd = 35)
+
 hist(cs)
 hist(pb)
 hist(mn)
@@ -110,7 +111,7 @@ quantile(pb.hat,c(0.25,0.75))
    *(4) estimate Y*
 ```{r}
 # Y|75% exposure
-as = rep(702.0925,825)
+as = rep(689,825)
 mn = rep(78.94541 ,825)
 pb = rep(48.83487,825)
 new75 = data.frame(as,mn,pb,age,iq,edu,smoke)

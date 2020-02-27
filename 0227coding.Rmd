@@ -13,14 +13,14 @@ library(MASS)
 
 ## ACE calculation function
 
-```{r}
-ht.est = function(as.hat,mn.hat,pb.hat,df,obs,n){
+### Method1. Regression
+```{r regression}
+re.est = function(as,mn,pb,df,obs,n){
   
-fit = lm(cs~as+mn+pb+age+iq+as.factor(edu)+as.factor(smoke),data = df)
-
-as.q = quantile(as.hat,c(0.25,0.75))
-mn.q = quantile(mn.hat,c(0.25,0.75))
-pb.q = quantile(pb.hat,c(0.25,0.75))
+fit = lm(cs~as+mn+pb+age*iq+as.factor(edu)*iq+as.factor(smoke)^2,data = df)
+as.q = quantile(as,c(0.25,0.75))
+mn.q = quantile(mn,c(0.25,0.75))
+pb.q = quantile(pb,c(0.25,0.75))
 
 as = rep(as.q[1],n)
 mn = rep(mn.q[1],n)
@@ -37,6 +37,12 @@ yhat_75 = predict(fit,new2,type = 'response')
 ace = mean(yhat_75)-mean(yhat_25)
 return(ace)
 }
+```
+
+###Method2. MSM
+
+```{r}
+
 ```
 
 
@@ -57,27 +63,18 @@ smoke = rbinom(825,1,0.24)
 
 obs = data.frame(age,iq,edu,smoke)
 #a
-as = age^(1/2)+age*iq+edu+smoke^2+rnorm(825,0,5)
-mn = age*2+edu^2+iq+smoke^3+rnorm(825,0,5)
-pb = age+iq*edu+iq*smoke+smoke^2+rnorm(825,0,5)
+as = age^(1/2)+age*iq+edu+smoke^2+rnorm(825,0,0.5)
+mn = 0.63*as+age*2+edu^2+iq+smoke^3+rnorm(825,0,0.5)
+pb = 0.28*mn+age+iq*edu+iq*smoke+smoke^2+rnorm(825,0,0.5)
 df = data.frame(as,mn,pb,obs)
 
 #y
-cs = 5*as+7*mn-3*pb+age*iq+edu*iq+smoke^2 +rnorm(n,sd = 35)
+cs = 0.05*as+0.7*mn-0.023*pb+age*iq+edu*iq+smoke^2 +rnorm(n,sd = 0.23)
 
 #true ace
-true.holder[i] = 5*(quantile(as,0.75)-quantile(as,0.25))+7*(quantile(mn,0.75)-quantile(mn,0.25))-3*(quantile(pb,0.75)-quantile(pb,0.25))
+true.holder[i] = 0.05*(quantile(as,0.75)-quantile(as,0.25))+0.7*(quantile(mn,0.75)-quantile(mn,0.25))-0.023*(quantile(pb,0.75)-quantile(pb,0.25))
 
-#propensity score
-fit.as = lm(as~age+iq+as.factor(edu)+as.factor(smoke),data = df)
-fit.mn = lm(mn~age+iq+as.factor(edu)+as.factor(smoke),data = df)
-fit.pb = lm(pb~age+iq+as.factor(edu)+as.factor(smoke),data = df)
-
-as.hat = predict(fit.as)
-mn.hat = predict(fit.mn)
-pb.hat = predict(fit.pb)
-
-est.holder[i] = ht.est(as.hat,mn.hat,pb.hat,df = df,obs = obs,n = n)
+est.holder[i] = re.est(as,mn,pb,df = df,obs = obs,n = n)
 }
 
 bias = est.holder-true.holder
@@ -108,16 +105,13 @@ for (i in 1:boots) {
   data.b = df[idx,]
   obs.b = obs[idx,]
   
-#propensity score
-fit.as = lm(as~age+iq+as.factor(edu)+as.factor(smoke),data = data.b)
-fit.mn = lm(mn~age+iq+as.factor(edu)+as.factor(smoke),data = data.b)
-fit.pb = lm(pb~age+iq+as.factor(edu)+as.factor(smoke),data = data.b)
+as.b = pull(data.b,as)
+mn.b = pull(data.b,mn)
+pb.b = pull(data.b,pb)
 
-as.hat = predict(fit.as)
-mn.hat = predict(fit.mn)
-pb.hat = predict(fit.pb)
+quantile(as.b,0.25)
 
-b.holder[i] = ht.est(as.hat,mn.hat,pb.hat,df = data.b,obs = obs.b,n = n)
+b.holder[i] = re.est(as.b,mn.b,pb.b,df = data.b,obs = obs.b,n = n)
 }
 
 
