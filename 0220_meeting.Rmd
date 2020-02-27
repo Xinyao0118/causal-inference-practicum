@@ -9,26 +9,134 @@ output:
     toc: True
     toc_float: True
 ---
+```{r include=FALSE}
+library(tidyverse)
+library(MASS)
+set.seed(1234)
+```
+
 
 #Tasks
 
-1. Multi-variable propensity score paper\
-2. Fill in the blank of last meeting codes\
-3. Sim = 10, plot the bias\
-4. Think carefully the difference of simulation and bootstrap
+##1. Multi-variable propensity score paper
+
+[A Tutorial on Propensity Score Estimation for Multiple Treatments Using Generalized Boosted Models](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC3710547/)
+
+[propensity score review, mentioned multi-exposure](http://citeseerx.ist.psu.edu/viewdoc/download;jsessionid=F25259B79B97955D0C16BD7529683CCE?doi=10.1.1.128.8840&rep=rep1&type=pdf)
+
+[Adaptive contrast weighted learning for multi‐stage multi‐treatment decision‐making](https://onlinelibrary.wiley.com/doi/epdf/10.1111/biom.12539)
+
+##2. Fill in the blank of last meeting codes\
+
+##3. Sim = 10, plot the bias\
+
+
+##4. Think carefully the difference of simulation and bootstrap
 
 #Instructions
-1. population = 10,000,000, sample(n=825) from pop.\
-2. Use population to measure true ATE
-3. RE-calculate the ATE.(Formula is wrong last week). Use 75th and 25th percentile for each mental.
-4. To calculate the estimated ATE in each simulation:\
-   *(1) generate data*\
-   *(2) linear regression*\
-   *(3) apply coef to generated obs, then calculate the 75th and 25th for each point*\
-   *(4) estimate Y*\
-   *(5) take average*\
 
-#Code
+1. population = 10,000,000, sample(n=825) from pop.\
+
+
+2. Use population to measure true ATE
+
+
+3. RE-calculate the ATE.(Formula is wrong last week). Use 75th and 25th percentile for each mental.
+
+4. To calculate the estimated ATE in each simulation:\
+   *(1) generate data*
+   
+```{r}
+#confoundings
+age = rnorm(825,22.9,4.2)
+iq = rnorm(825,26,5)
+edu = rbinom(825,1,0.24)
+smoke = rbinom(825,1,0.24)
+
+#exposure
+
+as = age^(1/2)+age*iq+edu+smoke^2+rnorm(825,0,5)
+mn = age*2+edu^2+iq+smoke^3+rnorm(825,0,5)
+pb = age+iq*edu+iq*smoke+smoke^2+rnorm(825,0,5)
+
+##quantile
+
+quantile(as,probs = c(0.25,0.75))
+quantile(mn,probs = c(0.25,0.75))
+quantile(pb,probs = c(0.25,0.75))
+
+##assume coef
+par(mfrow=c(2,2))
+cs = rnorm(825,(as*mn+as^2+pb+pb*3+mn)/10000,35)
+hist(cs)
+hist(pb)
+hist(mn)
+hist(as)
+```
+ *(1)-2 calculate ATE*
+ 
+
+E[Y|As= 75th percentile of As distribution, Mn= 75th percentile of Mn distribution, Ps= 75th percentile of Ps distribution]-E[Y|As= 75th percentile of As distribution, Mn= 75th percentile of Mn distribution, Ps= 75th percentile of Ps distribution]
+
+
+   *(2) linear regression*
+```{r}
+#propensity score
+fit.as = lm(as~age+iq+as.factor(edu)+as.factor(smoke))
+fit.mn = lm(mn~age+iq+as.factor(edu)+as.factor(smoke))
+fit.pb = lm(pb~age+iq+as.factor(edu)+as.factor(smoke))
+summary(fit.as)
+summary(fit.mn)
+summary(fit.pb)
+#Y~AX+C
+df = data.frame(cs,as,mn,pb,age,iq,edu,smoke)
+fit = lm(cs~as+mn+pb+age+iq+as.factor(edu)+as.factor(smoke),data = df)
+summary(fit)
+```
+
+*(3) apply coef to generated obs, then calculate the 75th and 25th for each point*\
+   
+```{r}
+#predict exposures
+as.hat = predict(fit.as)
+mn.hat = predict(fit.mn)
+pb.hat = predict(fit.pb)
+
+quantile(as.hat,c(0.25,0.75))
+quantile(mn.hat,c(0.25,0.75))
+quantile(pb.hat,c(0.25,0.75))
+```
+   
+   *(4) estimate Y*
+```{r}
+# Y|75% exposure
+as = rep(702.0925,825)
+mn = rep(78.94541 ,825)
+pb = rep(48.83487,825)
+new75 = data.frame(as,mn,pb,age,iq,edu,smoke)
+y75.hat = predict(fit,new75,type = 'response')
+
+# Y|75% exposure
+as = rep(496.6899,825)
+mn = rep(65.43030,825)
+pb = rep(21.62003,825)
+new25 = data.frame(as,mn,pb,age,iq,edu,smoke)
+y25.hat = predict.lm(fit,newdata = new25,type = 'response')
+
+par(mfrow = c(1,2))
+hist(y75.hat)
+hist(y25.hat)
+```
+   
+   
+   *(5) take average*\
+   
+```{r}
+ATE  = mean(y75.hat)-mean(y25.hat)
+print(ATE)
+```
+   
+
 
 
 #review
@@ -43,9 +151,6 @@ Y = A+B+B*C \
 A = 3B+2 \
 
 A and B are correlated. B and C are interacted.
-
-
-
 
 
 

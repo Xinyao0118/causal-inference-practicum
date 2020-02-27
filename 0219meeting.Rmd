@@ -215,7 +215,7 @@ $$ CS \sim N(avg.cs,35)$$
 
 
 
-
+##multivariant propensity score (literature)
 
 
 
