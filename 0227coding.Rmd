@@ -1,0 +1,126 @@
+---
+title: "0227 code"
+author: "Xinyao Wu"
+date: "2/27/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(MASS)
+```
+
+## ACE calculation function
+
+```{r}
+ht.est = function(as.hat,mn.hat,pb.hat,df,obs,n){
+  
+fit = lm(cs~as+mn+pb+age+iq+as.factor(edu)+as.factor(smoke),data = df)
+
+as.q = quantile(as.hat,c(0.25,0.75))
+mn.q = quantile(mn.hat,c(0.25,0.75))
+pb.q = quantile(pb.hat,c(0.25,0.75))
+
+as = rep(as.q[1],n)
+mn = rep(mn.q[1],n)
+pb = rep(pb.q[1],n)
+new1 = data.frame(as,mn,pb,obs)
+yhat_25 = predict(fit,new1,type = 'response')
+
+as = rep(as.q[2],n)
+mn = rep(mn.q[2],n)
+pb = rep(pb.q[2],n)
+new2 = data.frame(as,mn,pb,obs)
+yhat_75 = predict(fit,new2,type = 'response')
+
+ace = mean(yhat_75)-mean(yhat_25)
+return(ace)
+}
+```
+
+
+##Simulation
+```{r}
+
+n=825
+#simulation = 100
+nsim = 100
+est.holder = rep(NA,nsim)
+true.holder = rep(NA,nsim)
+for(i in 1:nsim){
+#confoundings
+age = rnorm(825,22.9,4.2)
+iq = rnorm(825,26,5)
+edu = rbinom(825,1,0.24)
+smoke = rbinom(825,1,0.24)
+
+obs = data.frame(age,iq,edu,smoke)
+#a
+as = age^(1/2)+age*iq+edu+smoke^2+rnorm(825,0,5)
+mn = age*2+edu^2+iq+smoke^3+rnorm(825,0,5)
+pb = age+iq*edu+iq*smoke+smoke^2+rnorm(825,0,5)
+df = data.frame(as,mn,pb,obs)
+
+#y
+cs = 5*as+7*mn-3*pb+age*iq+edu*iq+smoke^2 +rnorm(n,sd = 35)
+
+#true ace
+true.holder[i] = 5*(quantile(as,0.75)-quantile(as,0.25))+7*(quantile(mn,0.75)-quantile(mn,0.25))-3*(quantile(pb,0.75)-quantile(pb,0.25))
+
+#propensity score
+fit.as = lm(as~age+iq+as.factor(edu)+as.factor(smoke),data = df)
+fit.mn = lm(mn~age+iq+as.factor(edu)+as.factor(smoke),data = df)
+fit.pb = lm(pb~age+iq+as.factor(edu)+as.factor(smoke),data = df)
+
+as.hat = predict(fit.as)
+mn.hat = predict(fit.mn)
+pb.hat = predict(fit.pb)
+
+est.holder[i] = ht.est(as.hat,mn.hat,pb.hat,df = df,obs = obs,n = n)
+}
+
+bias = est.holder-true.holder
+hist(bias)
+
+```
+
+
+
+#description
+```{r}
+
+var(est.holder)
+var(true.holder)
+hist(est.holder)
+```
+
+
+##Bootstrap
+
+```{r}
+
+boots = 100
+b.holder = rep(NA)
+for (i in 1:boots) {
+  
+  idx = sample(1:n,size = n, replace = TRUE)
+  data.b = df[idx,]
+  obs.b = obs[idx,]
+  
+#propensity score
+fit.as = lm(as~age+iq+as.factor(edu)+as.factor(smoke),data = data.b)
+fit.mn = lm(mn~age+iq+as.factor(edu)+as.factor(smoke),data = data.b)
+fit.pb = lm(pb~age+iq+as.factor(edu)+as.factor(smoke),data = data.b)
+
+as.hat = predict(fit.as)
+mn.hat = predict(fit.mn)
+pb.hat = predict(fit.pb)
+
+b.holder[i] = ht.est(as.hat,mn.hat,pb.hat,df = data.b,obs = obs.b,n = n)
+}
+
+
+var(b.holder)
+```
+

@@ -94,10 +94,8 @@ After fitting MSM, we will get another estimated causal effect. This one should 
 
 ###(1)specify a case for showing $E[Y_{g(A)}-Y_{g(A)^*}]$
 
-referring 2 in the review:
-```{r}
 
-```
+
 
 ###(2)Simulation
 
@@ -123,6 +121,7 @@ avg.c = c(1,mean(age),mean(iq),mean(edu),mean(smoke))
 mu = c(sum(avg.c*as.beta),sum(avg.c*mn.beta),sum(avg.c*pb.beta)) %>% as.vector()
 names(mu) = c('as','mn','pb')
 mu
+
 #variance
 corr = matrix(data = c(1,0.59,0.29,0.59,1,0.53,0.29,0.53,1),ncol =3,nrow = 3)
 #var of As,Mn,Pb is 2.2,2.6,1.9
@@ -132,12 +131,18 @@ as = z[,1]
 mn = z[,2]
 pb = z[,3]
 
+
+
 #outcome
 #coef 
 coef = c(0.4,1,2.5,0.59,0.31,5.4,2.8,1.8)/3
 avg.ec= c(1,mean(as),mean(mn),mean(pb),mean(age),mean(iq),mean(edu),mean(smoke)) 
 avg.cs = sum(coef*avg.ec)
 names(avg.cs) = "average CS"
+
+
+
+
 avg.cs
 #generate the outcome
 cs = rnorm(825,avg.ec,35)
