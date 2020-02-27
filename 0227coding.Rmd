@@ -9,15 +9,23 @@ output: pdf_document
 knitr::opts_chunk$set(echo = TRUE)
 library(tidyverse)
 library(MASS)
+library(CBPS)
 ```
 
 ## ACE calculation function
 
-### Method1. Regression
+
 ```{r regression}
-re.est = function(as,mn,pb,df,obs,n){
+re.est = function(df,n){
+### Method1. Regression 
   
 fit = lm(cs~as+mn+pb+age*iq+as.factor(edu)*iq+as.factor(smoke)^2,data = df)
+
+obs = df[4:7]
+as = pull(df,as)
+mn = pull(df,mn)
+pb = pull(df,pb)
+
 as.q = quantile(as,c(0.25,0.75))
 mn.q = quantile(mn,c(0.25,0.75))
 pb.q = quantile(pb,c(0.25,0.75))
@@ -35,20 +43,22 @@ new2 = data.frame(as,mn,pb,obs)
 yhat_75 = predict(fit,new2,type = 'response')
 
 ace = mean(yhat_75)-mean(yhat_25)
+
+
 return(ace)
 }
 ```
 
 ###Method2. MSM
 
-```{r}
 
+```{r}
+msm.est = function(df,n)
 ```
 
 
 ##Simulation
 ```{r}
-
 n=825
 #simulation = 100
 nsim = 100
@@ -74,7 +84,7 @@ cs = 0.05*as+0.7*mn-0.023*pb+age*iq+edu*iq+smoke^2 +rnorm(n,sd = 0.23)
 #true ace
 true.holder[i] = 0.05*(quantile(as,0.75)-quantile(as,0.25))+0.7*(quantile(mn,0.75)-quantile(mn,0.25))-0.023*(quantile(pb,0.75)-quantile(pb,0.25))
 
-est.holder[i] = re.est(as,mn,pb,df = df,obs = obs,n = n)
+est.holder[i] = re.est(df,n = n)
 }
 
 bias = est.holder-true.holder
@@ -103,15 +113,10 @@ for (i in 1:boots) {
   
   idx = sample(1:n,size = n, replace = TRUE)
   data.b = df[idx,]
-  obs.b = obs[idx,]
-  
-as.b = pull(data.b,as)
-mn.b = pull(data.b,mn)
-pb.b = pull(data.b,pb)
 
 quantile(as.b,0.25)
 
-b.holder[i] = re.est(as.b,mn.b,pb.b,df = data.b,obs = obs.b,n = n)
+b.holder[i] = re.est(df = data.b,n = n)
 }
 
 
