@@ -2,7 +2,7 @@
 title: "0227 code"
 author: "Xinyao Wu"
 date: "2/27/2020"
-output: html_document
+output: pdf_document
 ---
 
 ```{r setup, include=FALSE}
