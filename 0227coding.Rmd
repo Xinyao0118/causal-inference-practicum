@@ -2,19 +2,25 @@
 title: "0227 code"
 author: "Xinyao Wu"
 date: "2/27/2020"
-output: pdf_document
+output: 
+    html_document:
+    number_sections: false
+    code_folding: hide
+    toc: True
+    toc_float: True
+    theme: lumen
+      
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 library(tidyverse)
 library(MASS)
+library(twang)
 library(CBPS)
 ```
 
-## ACE calculation function
-
-
+## ACE calculation function(regression)
 ```{r regression}
 re.est = function(df,n){
 ### Method1. Regression 
@@ -49,13 +55,30 @@ return(ace)
 }
 ```
 
-###Method2. MSM
+###Method2. MSM(function)
 
+[IPW reference](https://meghapsimatrix.com/post/continuous-r-rmarkdown/)
 
 ```{r}
-msm.est = function(df,n)
-```
 
+ipw = function(x,df,form){
+# the numerator
+mod_num <- lm(x ~ 1, data = df)
+
+num <- dnorm(x = x, # treatment 
+             mean = fitted.values(mod_num), # fitted values
+             sd = summary(mod_num)$sigma) # model sigma
+# the demonimator
+mod_den <- lm(formula = form, data = df)
+
+den <- dnorm(x = x, # treatment variable
+             mean = fitted.values(mod_den), # fitted values
+             sd = summary(mod_den)$sigma)
+ipw_s = num/den
+return(ipw_s)
+}
+
+```
 
 ##Simulation
 ```{r}
@@ -69,30 +92,40 @@ for(i in 1:nsim){
 age = rnorm(825,22.9,4.2)
 iq = rnorm(825,26,5)
 edu = rbinom(825,1,0.24)
-smoke = rbinom(825,1,0.24)
-
+smoke = rbinom(825,1,0.8)
 obs = data.frame(age,iq,edu,smoke)
 #a
-as = age^(1/2)+age*iq+edu+smoke^2+rnorm(825,0,0.5)
+as = age*2+age*iq+edu+smoke^2+rnorm(825,0,0.5)
 mn = 0.63*as+age*2+edu^2+iq+smoke^3+rnorm(825,0,0.5)
-pb = 0.28*mn+age+iq*edu+iq*smoke+smoke^2+rnorm(825,0,0.5)
-df = data.frame(as,mn,pb,obs)
-
+pb = 0.28*mn+age+iq+edu+smoke+rnorm(825,0,0.5)
 #y
 cs = 0.05*as+0.7*mn-0.023*pb+age*iq+edu*iq+smoke^2 +rnorm(n,sd = 0.23)
-
+df = data.frame(as,mn,pb,obs,cs)
 #true ace
 true.holder[i] = 0.05*(quantile(as,0.75)-quantile(as,0.25))+0.7*(quantile(mn,0.75)-quantile(mn,0.25))-0.023*(quantile(pb,0.75)-quantile(pb,0.25))
-
 est.holder[i] = re.est(df,n = n)
 }
 
 bias = est.holder-true.holder
 hist(bias)
-
 ```
 
+## Marginal Structure Model
 
+```{r}
+#test
+form1 = 'as~age+iq+as.factor(edu)+as.factor(smoke)'
+form2 = 'mn~as+age+iq+as.factor(edu)+as.factor(smoke)'
+form3 = 'pb~as+age+iq+as.factor(edu)+as.factor(smoke)'
+asw = ipw(as,df,form1)
+mnw = ipw(mn,df,form2)
+pbw = ipw(pb,df,form3)
+
+#weight matrix
+weight.matrix = asw*mnw*pbw
+msm <-svyglm(cs~as+mn+pb,design = svydesign(~ 1, weights = ~ weight.matrix,data=df))
+coef(msm)
+```
 
 #description
 ```{r}
@@ -107,19 +140,18 @@ hist(est.holder)
 
 ```{r}
 
-boots = 100
-b.holder = rep(NA)
-for (i in 1:boots) {
-  
-  idx = sample(1:n,size = n, replace = TRUE)
-  data.b = df[idx,]
-
-quantile(as.b,0.25)
-
-b.holder[i] = re.est(df = data.b,n = n)
-}
-
-
-var(b.holder)
+# boots = 100
+# b.holder = rep(NA)
+# for (i in 1:boots) {
+#   
+#   idx = sample(1:n,size = n, replace = TRUE)
+#   data.b = df[idx,]
+# 
+# quantile(as.b,0.25)
+# 
+# b.holder[i] = re.est(df = data.b,n = n)
+# }
+# 
+# var(b.holder)
 ```
 
