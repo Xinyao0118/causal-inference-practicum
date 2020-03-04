@@ -1,0 +1,55 @@
+---
+title: "CBPS"
+author: "Xinyao Wu"
+date: "2/28/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(MASS)
+library(twang)
+library(CBPS)
+```
+
+#Data 
+
+```{r}
+#confoundings
+age = rnorm(825,22.9,1)
+iq = rnorm(825,26,1)
+edu = rbinom(825,1,0.24)
+smoke = rbinom(825,1,0.2)
+obs = data.frame(age,iq,edu,smoke)
+#a
+as = age*0.002+iq*0.02+edu*0.02+smoke*0.1+rnorm(825,0,0.05)
+mn = 0.043*as+age*0.02+edu*0.02+iq*0.02+smoke*0.02+rnorm(825,0,0.05)
+pb = 0.08*mn+age*0.02+edu*0.02+iq*0.02+smoke*0.02+rnorm(825,0,0.02)
+#y
+cs = -0.05*as-0.7*mn-0.023*pb+iq+age+edu+0.01*age*iq+0.01*edu*iq-smoke +rnorm(825,0,sd = 0.03)
+df = data.frame(as,mn,pb,obs,cs)
+
+par(mfrow=c(2,2))
+hist(as)
+hist(mn)
+hist(pb)
+hist(cs)
+```
+
+
+```{r}
+form1 = 'as~age+iq+as.factor(edu)+as.factor(smoke)'
+form2 = 'mn~as+age+iq+as.factor(edu)+as.factor(smoke)'
+form3 = 'pb~as+age+iq+as.factor(edu)+as.factor(smoke)'
+
+
+as.ps = CBPS(form1)
+mn.ps = CBPS(form2)
+pb.ps = CBPS(form3)
+
+```
+
+
+
+
