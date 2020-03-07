@@ -1,0 +1,262 @@
+---
+title: "coding0304"
+author: "Xinyao Wu"
+date: "3/4/2020"
+output: 
+  html_document:
+    number_sections: false
+    code_folding: hide
+    toc: true
+    toc_float: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(MASS)
+library(twang)
+library(CBPS)
+```
+
+##Data generation
+
+```{r}
+data_generation = function(){
+#confoundings
+age = rnorm(825,22.9,4.2)
+iq = rnorm(825,26,5)
+edu = rbinom(825,1,0.24)
+smoke = rbinom(825,1,0.8)
+obs = data.frame(age,iq,edu,smoke)
+#a
+as = age*0.002+iq*0.02+edu*0.02+smoke*0.1+rnorm(825,0,0.05)
+mn = 0.043*as+age*0.02+edu*0.02+iq*0.02+smoke*0.02+rnorm(825,0,0.05)
+pb = 0.04*mn+age*0.02+edu*0.02+iq*0.02+smoke*0.02+rnorm(825,0,0.02)
+#y
+cs = -0.05*as-0.7*mn-0.023*pb+iq+age+edu+0.01*age*iq+0.01*edu*iq-smoke +rnorm(825,0,sd = 0.03)
+df = data.frame(as,mn,pb,obs,cs)
+return(df)
+}
+###test = data_generation()
+
+```
+
+## ACE calculation function(regression)
+```{r regression}
+re.est = function(df,n){
+### Method1. Regression 
+  
+fit = lm(cs~as+mn+pb+age*iq+as.factor(edu)*iq+as.factor(smoke)^2,data = df)
+
+obs = df[4:7]
+as = pull(df,as)
+mn = pull(df,mn)
+pb = pull(df,pb)
+
+as.q = quantile(as,c(0.25,0.75))
+mn.q = quantile(mn,c(0.25,0.75))
+pb.q = quantile(pb,c(0.25,0.75))
+
+as = rep(as.q[1],n)
+mn = rep(mn.q[1],n)
+pb = rep(pb.q[1],n)
+new1 = data.frame(as,mn,pb,obs)
+yhat_25 = predict(fit,new1,type = 'response')
+
+as = rep(as.q[2],n)
+mn = rep(mn.q[2],n)
+pb = rep(pb.q[2],n)
+new2 = data.frame(as,mn,pb,obs)
+yhat_75 = predict(fit,new2,type = 'response')
+
+ace = mean(yhat_75)-mean(yhat_25)
+return(ace)
+
+}
+```
+
+###Method2. MSM(function)
+
+[IPW reference](https://meghapsimatrix.com/post/continuous-r-rmarkdown/)
+
+```{r}
+
+ipw = function(x,df,form){
+# the numerator
+mod_num <- lm(x ~ 1, data = df)
+
+num <- dnorm(x = x, # treatment 
+             mean = fitted.values(mod_num), # fitted values
+             sd = summary(mod_num)$sigma) # model sigma
+# the demonimator
+mod_den <- lm(formula = form, data = df)
+
+den <- dnorm(x = x, # treatment variable
+             mean = fitted.values(mod_den), # fitted values
+             sd = summary(mod_den)$sigma)
+ipw_s = num/den
+return(ipw_s)
+}
+
+```
+
+### Marginal Structure Model
+
+```{r}
+msm.mann = function(data = df){
+#test
+form1 = 'as~age+iq+as.factor(edu)+as.factor(smoke)'
+form2 = 'mn~as+age+iq+as.factor(edu)+as.factor(smoke)'
+form3 = 'pb~as+age+iq+as.factor(edu)+as.factor(smoke)'
+asw = ipw(df$as,df,form1)
+mnw = ipw(df$mn,df,form2)
+pbw = ipw(df$pb,df,form3)
+
+#weight matrix
+weight.matrix = asw*mnw*pbw
+
+msm <-svyglm(cs~as+mn+pb,design = svydesign(~ 1, weights = ~ weight.matrix,data=df))
+co = coef(msm)
+
+
+#predict
+
+est2 = co['as']*(quantile(df$as,0.75)-quantile(df$as,0.25))
+      +co['mn']*(quantile(df$mn,0.75)-quantile(df$mn,0.25))
+      +co['pb']*(quantile(df$pb,0.75)-quantile(df$pb,0.25))
+
+return(est2)
+
+}
+```
+
+##Method3. CBPS
+
+```{r}
+msm.cbps = function(data = df){
+form1 = 'as~age+iq+as.factor(edu)+as.factor(smoke)'
+form2 = 'mn~as+age+iq+as.factor(edu)+as.factor(smoke)'
+form3 = 'pb~as+age+iq+as.factor(edu)+as.factor(smoke)'
+
+as.ps = CBPS(form1,data = df, method = "exact")
+mn.ps = CBPS(form2,data = df, method = "exact")
+pb.ps = CBPS(form3,data = df, method = "exact")
+
+weight.mtr = as.ps$weights * mn.ps$weights * pb.ps$weights
+
+msm.cbps <-svyglm(cs~as+mn+pb,design = svydesign(~ 1, weights = ~ weight.mtr,data=df))
+
+res = coef(msm.cbps)
+
+est1 = res['as']*(quantile(df$as,0.75)-quantile(df$as,0.25))
+      +res['mn']*(quantile(df$mn,0.75)-quantile(df$mn,0.25))
+      +res['pb']*(quantile(df$pb,0.75)-quantile(df$pb,0.25))
+
+return(est1)
+
+
+}
+```
+
+##Method4. Non-parametric CBPS
+
+```{r}
+msm.np.cbps = function(data = df){
+form1 = 'as~age+iq+as.factor(edu)+as.factor(smoke)'
+form2 = 'mn~as+age+iq+as.factor(edu)+as.factor(smoke)'
+form3 = 'pb~as+age+iq+as.factor(edu)+as.factor(smoke)'
+
+as.ps = npCBPS(form1,data = df, method = "exact")
+mn.ps = npCBPS(form2,data = df, method = "exact")
+pb.ps = npCBPS(form3,data = df, method = "exact")
+
+weight.mtr = as.ps$weights * mn.ps$weights * pb.ps$weights
+
+msm.cbps <-svyglm(cs~as+mn+pb,design = svydesign(~ 1, weights = ~ weight.mtr,data=df))
+
+res = coef(msm.cbps)
+
+est1 = res['as']*(quantile(df$as,0.75)-quantile(df$as,0.25))
+      +res['mn']*(quantile(df$mn,0.75)-quantile(df$mn,0.25))
+      +res['pb']*(quantile(df$pb,0.75)-quantile(df$pb,0.25))
+
+return(est1)
+
+
+}
+```
+
+##Simulation
+
+*true causal effect* : true.holder
+
+*estimated calsal effect by linear regression* : est.holder
+
+*estimated calsal effect by mannual MSM* : msm.holder
+
+*estimated calsal effect by CBPS MSM* : cbps.holder
+
+```{r,results='hide'}
+n=825
+set.seed(1234)
+#simulation = 100
+nsim = 10
+est.holder = rep(NA,nsim)
+true.holder = rep(NA,nsim)
+msm.holder = rep(NA,nsim)
+cbps.holder = rep(NA,nsim)
+np.cbps.holder = rep(NA,nsim)
+for(i in 1:nsim){ 
+set.seed(1234+i)
+df = data_generation()
+
+#true ace
+true.holder[i] = (-0.05)*(quantile(df$as,0.75)-quantile(df$as,0.25))
+                  +(-0.7)*(quantile(df$mn,0.75)-quantile(df$mn,0.25))
+                  +(-0.023)*(quantile(df$pb,0.75)-quantile(df$pb,0.25))
+
+#Method1
+est.holder[i] = re.est(df,n = n)
+#Method2
+msm.holder[i] = msm.mann(df)
+#Method3
+cbps.holder[i] = msm.cbps(df)
+#Method4
+np.cbps.holder[i] = msm.np.cbps(df)
+}
+
+```
+
+##Statistics and Distribution of Coefficients
+
+```{r}
+par(mfrow = c(2,3))
+#################################################################
+########ESTIMATED Causal effect of 75% -25% exposure#############
+hist(est.holder)
+hist(msm.holder)
+hist(cbps.holder)
+hist(np.cbps.holder)
+hist(true.holder)
+##################
+
+
+
+
+```
+
+
+```{r}
+# 
+# bias = est.holder-true.holder
+# hist(bias)
+# var(est.holder)
+# var(true.holder)
+# hist(est.holder)
+
+```
+
+reference
+
+[psw](https://www.cebma.org/wp-content/uploads/Li-Using-the-Propensity-Score-Method-to-Estimate-Causal-Effects.pdf)
+

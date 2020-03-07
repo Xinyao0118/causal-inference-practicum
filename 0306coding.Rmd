@@ -1,0 +1,410 @@
+---
+title: "0306codinge"
+author: "Xinyao Wu"
+date: "3/6/2020"
+output: 
+  html_document:
+    number_sections: false
+    toc: True
+    toc_float: True
+    theme: lumen
+---
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(MASS)
+library(twang)
+library(CBPS)
+library(parallel) # one of the core R packages
+library(doParallel)
+library(foreach)
+library(iterators)
+nCores <- 4  # to set manually
+registerDoParallel(nCores) 
+```
+
+#1.Paramters setting
+
+```{r}
+#population
+npop = 1000000
+
+#as = age+iq+edu+smoke
+coef.as = rbind(0.002,0.02,0.02,0.1) 
+# mn = as+age+edu+iq+smoke
+coef.mn = rbind(0.043,0.02,0.02,0.02,0.02)
+# pb = mn+age+edu+iq+smoke
+coef.pb = rbind(0.04,0.02,0.02,0.02,0.02)
+#cs = as+mn+pb+iq+age+edu+age*iq+edu*iq-smoke
+coef.cs = rbind(-0.05,-0.7,-0.023,1,1,1,0.01,0.01,-1)
+#error
+r.err = 0.05
+```
+
+#2.Generate population 
+
+```{r,cache=TRUE}
+population = function(npop){
+#confoundings
+age = rnorm(npop,9,4.2)
+iq = rnorm(npop,26,5)
+edu = rbinom(npop,1,0.24)
+smoke = rbinom(npop,1,0.8)
+obs = data.frame(age,iq,edu,smoke)
+#a
+as = cbind(age,iq,edu,smoke) %*% coef.as + rnorm(npop,0,r.err)
+mn = cbind(as,age,edu,iq,smoke) %*% coef.mn + rnorm(npop,0,r.err)
+pb = cbind(mn,age,edu,iq,smoke) %*% coef.pb + rnorm(npop,0,r.err)
+#y
+cs = cbind(as,mn,pb,iq,age,edu,age*iq,edu*iq,smoke) %*% coef.cs +rnorm(npop,0,r.err)
+
+df = data.frame(as,mn,pb,obs,cs)
+
+return(df)
+}
+
+df.pop = population(npop)
+
+write.csv(df.pop,'population_linear_version1.csv')
+
+par(mfrow=c(3,3))
+
+for(i in 1:ncol(df.pop)) {
+  hist(df.pop[,i], 
+       main = substitute(paste('Histogram of ',a),list(a = colnames(df)[i])),
+       xlab = substitute(a,list(a = colnames(df)[i])))
+}
+
+
+
+```
+
+
+#3. True Effect
+
+```{r}
+true.effect =  apply(cbind(df.pop$as,df.pop$mn,df.pop$pb),2,quantile,0.75)%*% coef.cs[1:3,]- apply(cbind(df.pop$as,df.pop$mn,df.pop$pb),2,quantile,0.25)%*% coef.cs[1:3,]
+
+print(paste('True causal effect is :',true.effect))
+
+```
+
+#4. Method1. Linear regression 
+
+##4-1. Function
+
+```{r regression}
+re.est = function(df,size){
+
+fit = lm(cs~as+mn+pb+age*iq+as.factor(edu)*iq+as.factor(smoke)^2,data = df)
+
+obs = df[4:7]
+as = pull(df,as)
+mn = pull(df,mn)
+pb = pull(df,pb)
+
+as.q = quantile(as,c(0.25,0.75))
+mn.q = quantile(mn,c(0.25,0.75))
+pb.q = quantile(pb,c(0.25,0.75))
+
+as = rep(as.q[1],size)
+mn = rep(mn.q[1],size)
+pb = rep(pb.q[1],size)
+new1 = data.frame(as,mn,pb,obs)
+yhat_25 = predict(fit,new1,type = 'response')
+
+as = rep(as.q[2],size)
+mn = rep(mn.q[2],size)
+pb = rep(pb.q[2],size)
+new2 = data.frame(as,mn,pb,obs)
+yhat_75 = predict(fit,new2,type = 'response')
+
+ace = mean(yhat_75)-mean(yhat_25)
+return(ace)
+}
+
+
+```
+
+##4-2.Check Linear Regression method work 
+
+```{r}
+nsim = 1000
+size = 1000
+tolerance = 0.01
+
+linear.method.check = function(df.pop,nsim,size,tol) {
+re.holder = rep(NA,nsim)
+for (i in 1:nsim) {
+  set.seed(1234+i)
+  sdf = sample_n(df.pop,size,replace = F)
+  #Method1
+  re.holder[i] = re.est(sdf,size)
+}
+
+bias = re.holder - true.effect
+hist(bias,main = 'Histogram of bias for Linear regression')
+
+accuracy = sum(ifelse(bias<tol,1,0))/nsim
+print(paste('Accuracy is :',accuracy,'with the tolerance',tol))
+
+}
+
+
+#test
+linear.method.check(df.pop,nsim,size,tolerance)
+```
+
+#5.Method2.MSM
+
+##5-1 function
+
+###5-1-1 inverse propensity score calculation
+
+```{r}
+
+ipw = function(x,df,form){
+# the numerator
+mod_num <- lm(x ~ 1, data = df)
+
+num <- dnorm(x = x, # treatment 
+             mean = fitted.values(mod_num), # fitted values
+             sd = summary(mod_num)$sigma) # model sigma
+# the demonimator
+mod_den <- lm(formula = form, data = df)
+
+den <- dnorm(x = x, # treatment variable
+             mean = fitted.values(mod_den), # fitted values
+             sd = summary(mod_den)$sigma)
+ipw_s = num/den
+return(ipw_s)
+}
+
+```
+
+###5-1-2 msm function
+
+```{r}
+msm.mann = function(sdf) {
+#test
+form1 = 'as~age+iq+as.factor(edu)+as.factor(smoke)'
+form2 = 'mn~as+age+iq+as.factor(edu)+as.factor(smoke)'
+form3 = 'pb~as+age+iq+as.factor(edu)+as.factor(smoke)'
+asw = ipw(sdf$as,sdf,form1)
+mnw = ipw(sdf$mn,sdf,form2)
+pbw = ipw(sdf$pb,sdf,form3)
+
+#weight matrix
+weight.matrix = asw*mnw*pbw
+
+msm <-svyglm(cs~as+mn+pb,design = svydesign(~ 1, weights = ~ weight.matrix,data=sdf))
+             
+quant75 = apply(cbind(sdf$as,sdf$mn,sdf$pb),2,quantile,0.75)
+as = quant75[1]
+mn = quant75[2]
+pb = quant75[3]
+new1 = data.frame(as,mn,pb)
+yhat_75 = predict(msm,new1,type = 'response')
+quant25 = apply(cbind(sdf$as,sdf$mn,sdf$pb),2,quantile,0.25)
+as = quant25[1]
+mn = quant25[2]
+pb = quant25[3]
+new1 = data.frame(as,mn,pb)
+yhat_25 = predict(msm,new1,type = 'response')
+est2 = yhat_75 - yhat_25
+return(est2)
+}
+
+```
+
+##5-2 Check MSM work
+  
+```{r}
+nsim = 1000
+size = 1000
+tolerance = 0.01
+
+msm.check = function(df.pop,nsim,size,tol) {
+  
+msm.holder = rep(NA,nsim)
+
+for (i in 1:nsim) {
+  
+  set.seed(1234+i)
+  sdf = sample_n(df.pop,size,replace = F)
+  #Method2
+  msm.holder[i] = msm.mann(sdf)
+}
+
+bias = msm.holder - true.effect
+hist(bias,main = 'Histogram of bias for MSM')
+
+accuracy = sum(ifelse(bias<tol,1,0))/nsim
+print(paste('Accuracy is :',accuracy,'with the tolerance',tol))
+
+}
+
+
+#test
+msm.check(df.pop,nsim,size,tol=1)
+```
+
+#6.Method 3. CBPS MSM
+
+##6-1 function
+
+```{r}
+msm.cbps = function(sdf){
+form1 = 'as~age+iq+as.factor(edu)+as.factor(smoke)'
+form2 = 'mn~as+age+iq+as.factor(edu)+as.factor(smoke)'
+form3 = 'pb~as+age+iq+as.factor(edu)+as.factor(smoke)'
+
+as.ps = CBPS(form1,data = sdf, method = "exact")
+mn.ps = CBPS(form2,data = sdf, method = "exact")
+pb.ps = CBPS(form3,data = sdf, method = "exact")
+
+weight.mtr = as.ps$weights * mn.ps$weights * pb.ps$weights
+
+msm.cbps <-svyglm(cs~as+mn+pb,design = svydesign(~ 1, weights = ~ weight.mtr,data=sdf))
+
+quant75 = apply(cbind(sdf$as,sdf$mn,sdf$pb),2,quantile,0.75)
+as = quant75[1]
+mn = quant75[2]
+pb = quant75[3]
+new1 = data.frame(as,mn,pb)
+
+yhat_75 = predict(msm.cbps,new1,type = 'response')
+
+
+quant25 = apply(cbind(sdf$as,sdf$mn,sdf$pb),2,quantile,0.25)
+as = quant25[1]
+mn = quant25[2]
+pb = quant25[3]
+new1 = data.frame(as,mn,pb)
+yhat_25 = predict(msm.cbps,new1,type = 'response')
+
+est1 = yhat_75 - yhat_25
+return(est1)
+
+}
+
+```
+
+##6-2Check CBPS.MSM work
+
+```{r}
+nsim = 100
+size = 1000
+tolerance = 0.01
+
+cbps.msm.check = function(df.pop,nsim,size,tol) {
+  
+cbps.msm.holder = rep(NA,nsim)
+
+for (i in 1:nsim) {
+  
+  set.seed(1234+i)
+  sdf = sample_n(df.pop,size,replace = F)
+  #Method2
+  cbps.msm.holder[i] = msm.cbps(sdf)
+}
+bias = cbps.msm.holder - true.effect
+hist(bias,main = 'Histogram of bias for CBPS MSM')
+
+accuracy = sum(ifelse(bias<tol,1,0))/nsim
+print(paste('Accuracy is :',accuracy,'with the tolerance',tol))
+
+}
+
+#test
+msm.check(df.pop,nsim,size,tol=1)
+```
+
+#7 Method4. Non-parametric CBPS MSM
+
+##7-1 function
+
+```{r}
+msm.np.cbps = function(sdf){
+form1 = 'as~age+iq+as.factor(edu)+as.factor(smoke)'
+form2 = 'mn~as+age+iq+as.factor(edu)+as.factor(smoke)'
+form3 = 'pb~as+age+iq+as.factor(edu)+as.factor(smoke)'
+
+as.ps = npCBPS(form1,data = sdf, method = "exact")
+mn.ps = npCBPS(form2,data = sdf, method = "exact")
+pb.ps = npCBPS(form3,data = sdf, method = "exact")
+
+weight.mtr = as.ps$weights * mn.ps$weights * pb.ps$weights
+
+
+msm.cbps <-svyglm(cs~as+mn+pb,design = svydesign(~ 1, weights = ~ weight.mtr,data=sdf))
+
+quant75 = apply(cbind(sdf$as,sdf$mn,sdf$pb),2,quantile,0.75)
+as = quant75[1]
+mn = quant75[2]
+pb = quant75[3]
+new1 = data.frame(as,mn,pb)
+
+yhat_75 = predict(msm.cbps,new1,type = 'response')
+
+
+quant25 = apply(cbind(sdf$as,sdf$mn,sdf$pb),2,quantile,0.25)
+as = quant25[1]
+mn = quant25[2]
+pb = quant25[3]
+new1 = data.frame(as,mn,pb)
+yhat_25 = predict(msm.cbps,new1,type = 'response')
+
+est1 = yhat_75 - yhat_25
+return(est1)
+}
+
+```
+
+##7-2. Check Non-parametric CBPS MSM
+
+
+```{r}
+nsim = 10
+size = 1000
+
+npcbps.msm.check = function(df.pop,nsim,size,tol) {
+  
+npcbps.msm.holder = rep(NA,nsim)
+
+for (i in 1:nsim) {
+  
+  set.seed(1234+i)
+  sdf = sample_n(df.pop,size,replace = F)
+  #Method2
+  npcbps.msm.holder[i] = msm.np.cbps(sdf)
+}
+bias = npcbps.msm.holder - true.effect
+hist(bias,main = 'Histogram of bias for CBPS MSM')
+
+accuracy = sum(ifelse(bias<tol,1,0))/nsim
+print(paste('Accuracy is :',accuracy,'with the tolerance',tol))
+
+}
+
+#test
+npcbps.msm.check(df.pop,nsim,size,tol=1)
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
