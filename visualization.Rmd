@@ -1,0 +1,94 @@
+---
+title: "data visualization"
+author: "uni:xw2598"
+date: "2020/6/19"
+output: html_document
+---
+
+#Requirement
+
+- Scenario1.csv
+
+- Scenario2.csv
+
+- Scenario3.csv
+
+- upper_truncation_sce1.csv
+
+- upper_truncation_sce2.csv
+
+- upper_truncation_sce3.csv
+
+- lower_truncation_sce1.csv
+
+- lower_truncation_sce2.csv
+
+- lower_truncation_sce3.csv
+
+All of the data above generated from scenario1.rmd,scenario2.rmd,scenario2.rmd and stored in data folder.
+
+#Density plot
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#3D Plot
+
+
+
+
+
+
+
+
+
+
+
+#Quantified Truncation
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
