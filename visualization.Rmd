@@ -4,14 +4,17 @@ author: "uni:xw2598"
 date: "2020/6/19"
 output: html_document
 ---
+```{r,include=FALSE}
+library(tidyverse)
+```
 
 #Requirement
 
-- Scenario1.csv
+- Scenario1_singlesim.csv
 
-- Scenario2.csv
+- Scenario2_singlesim.csv
 
-- Scenario3.csv
+- Scenario3_singlesim.csv
 
 - upper_truncation_sce1.csv
 
@@ -29,23 +32,19 @@ All of the data above generated from scenario1.rmd,scenario2.rmd,scenario2.rmd a
 
 #Density plot
 
+```{r}
+df = read.csv('./data/scenario1_singlesim.csv')
 
 
 
 
 
-
-
-
-
-
-
-
-
+```
 
 #3D Plot
+```{r}
 
-
+```
 
 
 
