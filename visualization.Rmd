@@ -55,12 +55,7 @@ scatter3D(df$mn, df$pb, df$ps, colvar = df$as,phi = 20, theta = 15, bty = "b2", 
 scatter3D(df$as, df$pb, df$ps, colvar = df$mn,phi = 20, theta = 15, bty = "b2", ticktype = "detailed",main = "weight distribution for scenario 1", xlab = "As",ylab ="mn", zlab = "propensity score")
 ```
 
-##3.Quantified Truncation
 
-
-```{r}
-
-```
 
 
 
