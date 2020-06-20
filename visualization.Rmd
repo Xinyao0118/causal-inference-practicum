@@ -6,6 +6,7 @@ output: html_document
 ---
 ```{r,include=FALSE}
 library(tidyverse)
+
 ```
 
 #Requirement
@@ -30,18 +31,22 @@ library(tidyverse)
 
 All of the data above generated from scenario1.rmd,scenario2.rmd,scenario2.rmd and stored in data folder.
 
-#Density plot
+#Scenario1
+
+##1.Density plot
+
+
 
 ```{r}
 df = read.csv('./data/scenario1_singlesim.csv')
 
-
-
-
+ggplot(df)+geom_point(aes(x = asw,y = pbw,color = mnw))
+ggplot(df)+geom_point(aes(x = asw,y = mnw,color = pbw))
+ggplot(df)+geom_point(aes(x = pbw,y = pbw,color = asw))
 
 ```
 
-#3D Plot
+##2.3D Plot
 ```{r}
 
 ```
@@ -54,7 +59,7 @@ df = read.csv('./data/scenario1_singlesim.csv')
 
 
 
-#Quantified Truncation
+##3.Quantified Truncation
 
 
 
