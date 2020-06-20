@@ -6,7 +6,7 @@ output: html_document
 ---
 ```{r,include=FALSE}
 library(tidyverse)
-
+library(plot3D)
 ```
 
 #Requirement
@@ -35,8 +35,6 @@ All of the data above generated from scenario1.rmd,scenario2.rmd,scenario2.rmd a
 
 ##1.Density plot
 
-
-
 ```{r}
 df = read.csv('./data/scenario1_singlesim.csv')
 
@@ -47,21 +45,22 @@ ggplot(df)+geom_point(aes(x = pbw,y = pbw,color = asw))
 ```
 
 ##2.3D Plot
+
 ```{r}
 
+scatter3D(df$as, df$mn, df$ps, colvar = df$pb,phi = 20, theta = 15, bty = "b2", ticktype = "detailed",main = "weight distribution for scenario 1", xlab = "As",ylab ="mn", zlab = "propensity score")
+
+scatter3D(df$mn, df$pb, df$ps, colvar = df$as,phi = 20, theta = 15, bty = "b2", ticktype = "detailed",main = "weight distribution for scenario 1", xlab = "As",ylab ="mn", zlab = "propensity score")
+
+scatter3D(df$as, df$pb, df$ps, colvar = df$mn,phi = 20, theta = 15, bty = "b2", ticktype = "detailed",main = "weight distribution for scenario 1", xlab = "As",ylab ="mn", zlab = "propensity score")
 ```
-
-
-
-
-
-
-
-
 
 ##3.Quantified Truncation
 
 
+```{r}
+
+```
 
 
 
