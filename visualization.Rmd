@@ -57,14 +57,35 @@ scatter3D(df$as, df$pb, df$ps, colvar = df$mn,phi = 20, theta = 15, bty = "b2", 
 
 ##3.Quantified Truncation
 
-###3-1.upper truncation
+###3-1.lower truncation
 ```{r}
-
-
+low1= read.csv("./data/lower_truncation_mann_sce1.csv")
+low1$sce = 'scenario1'
+low2 = read.csv("./data/lower_truncation_mann_sce2.csv")
+low2$sce = 'scenario2'
+low3 = read.csv("./data/lower_truncation_mann_sce3.csv")
+low3$sce = 'scenario3'
+low = rbind(low1,low2,low3)
+low = low%>% group_by(q,sce) %>% summarise(avg = mean(response),sd = sd(response)) 
+knitr::kable(low)
+ggplot(low)+geom_line(aes(x = q,y = avg,color = sce))
+ggplot(low)+geom_line(aes(x = q,y = sd,color = sce))
 ```
 
 
-
+```{r}
+up1= read.csv("./data/upper_truncation_mann_sce1.csv")
+up1$sce = 'scenario1'
+up2 = read.csv("./data/upper_truncation_mann_sce2.csv")
+up2$sce = 'scenario2'
+up3 = read.csv("./data/upper_truncation_mann_sce3.csv")
+up3$sce = 'scenario3'
+up= rbind(up1,up2,up3)
+up = up%>% group_by(q,sce) %>% summarise(avg = mean(response),sd = sd(response)) 
+knitr::kable(up)
+ggplot(up)+geom_line(aes(x = q,y = avg,color = sce))
+ggplot(up)+geom_line(aes(x = q,y = sd,color = sce))
+```
 
 
 

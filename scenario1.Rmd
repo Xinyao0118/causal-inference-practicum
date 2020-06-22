@@ -119,7 +119,7 @@ return(ace)
 ##4-2.Check Linear Regression method work 
 
 ```{r}
-nsim = 10
+nsim = 100
 size = 1000
 tolerance = 0.01
 
@@ -381,10 +381,12 @@ npcbps.msm.check(df.pop,nsim,size,tol=1)
 
 ##lower_truncation
 
-deleting q% of the lower area data
+ deleting q% of the lower area data
+
+###8-1-2 mannual marginal structural model
 
 ```{r}
-msm.mann = function(sdf) {
+msm.mann = function(sdf,q) {
 #test
 form1 = 'as~age+iq+as.factor(edu)+as.factor(smoke)'
 form2 = 'mn~as+age+iq+as.factor(edu)+as.factor(smoke)'
@@ -395,37 +397,102 @@ pbw = ipw(sdf$pb,sdf,form3)
 #weight matrix
 weight.matrix = asw*mnw*pbw
 #truncation
-sdf_t = cbind(as,mn,pb,asw,mnw,pbw,weight.matrix) %>% as.data.frame() %>% filter(weight.matrix>=quantile(weight.matrix,q))
+sdf_t = cbind(sdf,asw,mnw,pbw,weight.matrix) %>% as.data.frame() %>% filter(weight.matrix>=quantile(weight.matrix,q))
 
+msm <-svyglm(cs~as+mn+pb,design = svydesign(~ 1, weights = ~ weight.matrix,data=sdf_t))
 
-msm <-svyglm(cs~as+mn+pb,design = svydesign(~ 1, weights = ~ weight.matrix,data=sdf))
-             
-quant75 = apply(cbind(sdf$as,sdf$mn,sdf$pb),2,quantile,0.75)
+quant75 = apply(cbind(sdf_t$as,sdf_t$mn,sdf_t$pb),2,quantile,0.75)
 as = quant75[1]
 mn = quant75[2]
 pb = quant75[3]
 new1 = data.frame(as,mn,pb)
 yhat_75 = predict(msm,new1,type = 'response')
-quant25 = apply(cbind(sdf$as,sdf$mn,sdf$pb),2,quantile,0.25)
+quant25 = apply(cbind(sdf_t$as,sdf_t$mn,sdf_t$pb),2,quantile,0.25)
 as = quant25[1]
 mn = quant25[2]
 pb = quant25[3]
 new1 = data.frame(as,mn,pb)
 yhat_25 = predict(msm,new1,type = 'response')
 est2 = yhat_75 - yhat_25
+res = data.frame(q,est2)
+return(res)
+}
 
-return(est2)
+
+##0~20%
+man_trun  = data.frame()
+for(j in 1:5){
+  q = j/25
+
+for (i in 1:nsim) {
+  
+  set.seed(1234+i)
+  sdf = sample_n(df.pop,size,replace = F)
+  man_trun = rbind(man_trun,msm.mann(sdf,q))
+}
 
 }
 
-scenario1_singlesim = cbind(sdf$as,sdf$mn,sdf$pb,asw,mnw,pbw,weight.matrix,est2)
-
-colnames(scenario1_singlesim) = c('as','mn','pb','asw','mnw','pbw','ps','ace')
-write.csv(scenario1_singlesim,'./data/scenario1_singlesim.csv')
-
+write.csv(man_trun,'./data/lower_truncation_mann_sce1.csv')
 ```
 
 
+##upper_truncation
+
+ deleting q% of the upper area data
+
+###8-1-2 mannual marginal structural model
+
+```{r}
+msm.mann = function(sdf,q) {
+#test
+form1 = 'as~age+iq+as.factor(edu)+as.factor(smoke)'
+form2 = 'mn~as+age+iq+as.factor(edu)+as.factor(smoke)'
+form3 = 'pb~as+age+iq+as.factor(edu)+as.factor(smoke)'
+asw = ipw(sdf$as,sdf,form1)
+mnw = ipw(sdf$mn,sdf,form2)
+pbw = ipw(sdf$pb,sdf,form3)
+#weight matrix
+weight.matrix = asw*mnw*pbw
+#truncation
+sdf_t = cbind(sdf,asw,mnw,pbw,weight.matrix) %>% as.data.frame() %>% filter(weight.matrix<=quantile(weight.matrix,1-q))
+
+msm <-svyglm(cs~as+mn+pb,design = svydesign(~ 1, weights = ~ weight.matrix,data=sdf_t))
+
+quant75 = apply(cbind(sdf_t$as,sdf_t$mn,sdf_t$pb),2,quantile,0.75)
+as = quant75[1]
+mn = quant75[2]
+pb = quant75[3]
+new1 = data.frame(as,mn,pb)
+yhat_75 = predict(msm,new1,type = 'response')
+quant25 = apply(cbind(sdf_t$as,sdf_t$mn,sdf_t$pb),2,quantile,0.25)
+as = quant25[1]
+mn = quant25[2]
+pb = quant25[3]
+new1 = data.frame(as,mn,pb)
+yhat_25 = predict(msm,new1,type = 'response')
+est2 = yhat_75 - yhat_25
+res = data.frame(q,est2)
+return(res)
+}
+
+
+##0~20%
+man_trun  = data.frame()
+for(j in 1:5){
+  q = j*4/100
+
+for (i in 1:nsim) {
+  
+  set.seed(1234+i)
+  sdf = sample_n(df.pop,size,replace = F)
+  man_trun = rbind(man_trun,msm.mann(sdf,q))
+}
+
+}
+
+write.csv(man_trun,'./data/upper_truncation_mann_sce1.csv')
+```
 
 
 
