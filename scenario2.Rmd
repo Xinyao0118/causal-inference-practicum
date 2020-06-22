@@ -1,5 +1,5 @@
 ---
-title: 'scenario1'
+title: 'scenario2'
 author: "uni:xw2598"
 date: "6/15/2020"
 output: html_document
@@ -21,17 +21,17 @@ registerDoParallel(nCores)
 
 
 #1.Paramters setting
-##scenario 1
+##scenario 2
 ```{r}
 #population
 npop = 1000000
 
 #as = age+iq+edu+smoke
-coef.as = rbind(0.002,0.02,0.02,0.1) 
-# mn = as+age+edu+iq+smoke
-coef.mn = rbind(0.043,0.02,0.02,0.02,0.02)
-# pb = mn+age+edu+iq+smoke
-coef.pb = rbind(0.04,0.02,0.02,0.02,0.02)
+coef.as = rbind(0.002,0.015,0.02,0.1) 
+# mn = age+edu+iq+smoke
+coef.mn = rbind(0.043,0.02,0.02,0.02)
+# pb = age+edu+iq+smoke
+coef.pb = rbind(0.058,0.01,0.02,0.078)
 #cs = as+mn+pb+iq+age+edu+age*iq+edu*iq-smoke
 coef.cs = rbind(-0.05,-0.7,-0.023,1,1,1,0.01,0.01,-1)
 #error
@@ -50,8 +50,8 @@ smoke = rbinom(npop,1,0.8)
 obs = data.frame(age,iq,edu,smoke)
 #a
 as = cbind(age,iq,edu,smoke) %*% coef.as + rnorm(npop,0,r.err)
-mn = cbind(as,age,edu,iq,smoke) %*% coef.mn + rnorm(npop,0,r.err)
-pb = cbind(mn,age,edu,iq,smoke) %*% coef.pb + rnorm(npop,0,r.err)
+mn = cbind(age,edu,iq,smoke) %*% coef.mn + rnorm(npop,0,r.err)
+pb = cbind(age,edu,iq,smoke) %*% coef.pb + rnorm(npop,0,r.err)
 #y
 cs = cbind(as,mn,pb,iq,age,edu,age*iq,edu*iq,smoke) %*% coef.cs +rnorm(npop,0,r.err)
 
@@ -62,7 +62,7 @@ return(df)
 
 df.pop = population(npop)
 #scenario1
-write.csv(df.pop,'./data/pop_scenario1.csv')
+write.csv(df.pop,'./data/pop_scenario2.csv')
 
 par(mfrow=c(3,3))
 #data visualization 
@@ -119,7 +119,7 @@ return(ace)
 ##4-2.Check Linear Regression method work 
 
 ```{r}
-nsim = 10
+nsim = 100
 size = 1000
 tolerance = 0.01
 
@@ -133,7 +133,7 @@ for (i in 1:nsim) {
 }
 
 linear.bias = re.holder - true.effect
-hist(bias,main = 'Histogram of bias for Linear regression')
+hist(linear.bias,main = 'Histogram of bias for Linear regression')
 
 #accuracy = sum(ifelse(bias<tol,1,0))/nsim
 #print(paste('Accuracy is :',accuracy,'with the tolerance',tol))
@@ -177,8 +177,8 @@ return(ipw_s)
 msm.mann = function(sdf) {
 #test
 form1 = 'as~age+iq+as.factor(edu)+as.factor(smoke)'
-form2 = 'mn~as+age+iq+as.factor(edu)+as.factor(smoke)'
-form3 = 'pb~as+age+iq+as.factor(edu)+as.factor(smoke)'
+form2 = 'mn~age+iq+as.factor(edu)+as.factor(smoke)'
+form3 = 'pb~age+iq+as.factor(edu)+as.factor(smoke)'
 asw = ipw(sdf$as,sdf,form1)
 mnw = ipw(sdf$mn,sdf,form2)
 pbw = ipw(sdf$pb,sdf,form3)
@@ -205,11 +205,6 @@ est2 = yhat_75 - yhat_25
 return(est2)
 
 }
-
-scenario1_singlesim = cbind(sdf$as,sdf$mn,sdf$pb,asw,mnw,pbw,weight.matrix,est2)
-
-colnames(scenario1_singlesim) = c('as','mn','pb','asw','mnw','pbw','ps','ace')
-write.csv(scenario1_singlesim,'./data/scenario1_singlesim.csv')
 
 ```
 
@@ -383,48 +378,116 @@ npcbps.msm.check(df.pop,nsim,size,tol=1)
 
 deleting q% of the lower area data
 
+###8-1-2 mannual marginal structural model
+
 ```{r}
-msm.mann = function(sdf) {
+msm.mann = function(sdf,q) {
 #test
 form1 = 'as~age+iq+as.factor(edu)+as.factor(smoke)'
-form2 = 'mn~as+age+iq+as.factor(edu)+as.factor(smoke)'
-form3 = 'pb~as+age+iq+as.factor(edu)+as.factor(smoke)'
+form2 = 'mn~age+iq+as.factor(edu)+as.factor(smoke)'
+form3 = 'pb~age+iq+as.factor(edu)+as.factor(smoke)'
 asw = ipw(sdf$as,sdf,form1)
 mnw = ipw(sdf$mn,sdf,form2)
 pbw = ipw(sdf$pb,sdf,form3)
 #weight matrix
 weight.matrix = asw*mnw*pbw
 #truncation
-sdf_t = cbind(as,mn,pb,asw,mnw,pbw,weight.matrix) %>% as.data.frame() %>% filter(weight.matrix>=quantile(weight.matrix,q))
+sdf_t = cbind(sdf,asw,mnw,pbw,weight.matrix) %>% as.data.frame() %>% filter(weight.matrix>=quantile(weight.matrix,q))
 
+msm <-svyglm(cs~as+mn+pb,design = svydesign(~ 1, weights = ~ weight.matrix,data=sdf_t))
 
-msm <-svyglm(cs~as+mn+pb,design = svydesign(~ 1, weights = ~ weight.matrix,data=sdf))
-             
-quant75 = apply(cbind(sdf$as,sdf$mn,sdf$pb),2,quantile,0.75)
+quant75 = apply(cbind(sdf_t$as,sdf_t$mn,sdf_t$pb),2,quantile,0.75)
 as = quant75[1]
 mn = quant75[2]
 pb = quant75[3]
 new1 = data.frame(as,mn,pb)
 yhat_75 = predict(msm,new1,type = 'response')
-quant25 = apply(cbind(sdf$as,sdf$mn,sdf$pb),2,quantile,0.25)
+quant25 = apply(cbind(sdf_t$as,sdf_t$mn,sdf_t$pb),2,quantile,0.25)
 as = quant25[1]
 mn = quant25[2]
 pb = quant25[3]
 new1 = data.frame(as,mn,pb)
 yhat_25 = predict(msm,new1,type = 'response')
 est2 = yhat_75 - yhat_25
+res = data.frame(q,est2)
+return(res)
+}
 
-return(est2)
+
+##0~20%
+man_trun  = data.frame()
+for(j in 1:5){
+  q = j/25
+
+for (i in 1:nsim) {
+  
+  set.seed(1234+i)
+  sdf = sample_n(df.pop,size,replace = F)
+  man_trun = rbind(man_trun,msm.mann(sdf,q))
+}
 
 }
 
-scenario1_singlesim = cbind(sdf$as,sdf$mn,sdf$pb,asw,mnw,pbw,weight.matrix,est2)
-
-colnames(scenario1_singlesim) = c('as','mn','pb','asw','mnw','pbw','ps','ace')
-write.csv(scenario1_singlesim,'./data/scenario1_singlesim.csv')
-
+write.csv(man_trun,'./data/lower_truncation_mann_sce2.csv')
 ```
 
+
+##upper_truncation
+
+ deleting q% of the upper area data
+
+###8-1-2 mannual marginal structural model
+
+```{r}
+msm.mann = function(sdf,q) {
+#test
+form1 = 'as~age+iq+as.factor(edu)+as.factor(smoke)'
+form2 = 'mn~age+iq+as.factor(edu)+as.factor(smoke)'
+form3 = 'pb~age+iq+as.factor(edu)+as.factor(smoke)'
+asw = ipw(sdf$as,sdf,form1)
+mnw = ipw(sdf$mn,sdf,form2)
+pbw = ipw(sdf$pb,sdf,form3)
+#weight matrix
+weight.matrix = asw*mnw*pbw
+#truncation
+sdf_t = cbind(sdf,asw,mnw,pbw,weight.matrix) %>% as.data.frame() %>% filter(weight.matrix<=quantile(weight.matrix,1-q))
+
+msm <-svyglm(cs~as+mn+pb,design = svydesign(~ 1, weights = ~ weight.matrix,data=sdf_t))
+
+quant75 = apply(cbind(sdf_t$as,sdf_t$mn,sdf_t$pb),2,quantile,0.75)
+as = quant75[1]
+mn = quant75[2]
+pb = quant75[3]
+new1 = data.frame(as,mn,pb)
+yhat_75 = predict(msm,new1,type = 'response')
+quant25 = apply(cbind(sdf_t$as,sdf_t$mn,sdf_t$pb),2,quantile,0.25)
+as = quant25[1]
+mn = quant25[2]
+pb = quant25[3]
+new1 = data.frame(as,mn,pb)
+yhat_25 = predict(msm,new1,type = 'response')
+est2 = yhat_75 - yhat_25
+res = data.frame(q,est2)
+return(res)
+}
+
+
+##0~20%
+man_trun  = data.frame()
+for(j in 1:5){
+  q = j*4/100
+
+for (i in 1:nsim) {
+  
+  set.seed(1234+i)
+  sdf = sample_n(df.pop,size,replace = F)
+  man_trun = rbind(man_trun,msm.mann(sdf,q))
+}
+
+}
+
+write.csv(man_trun,'./data/upper_truncation_mann_sce2.csv')
+```
 
 
 
